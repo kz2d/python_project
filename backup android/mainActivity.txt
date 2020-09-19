@@ -1,0 +1,253 @@
+package com.example.myapplication;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GestureDetectorCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.fragment.app.FragmentManager;
+
+import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+import android.os.Bundle;
+
+import com.google.android.material.navigation.NavigationView;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Random;
+
+import static java.lang.Math.abs;
+
+public class MainActivity extends AppCompatActivity
+        implements View.OnTouchListener,
+        NavigationView.OnNavigationItemSelectedListener
+{
+    int StartX;
+    long StartTime;
+    private String[] EnglishWord;
+    private String[] RushenhWord;
+
+    NavigationView nav_bar;
+    private GestureDetectorCompat gd;
+    private TextView EnglishCard;
+    private DrawerLayout Main;
+    private LinearLayout Box;
+    private TextView Translate;
+    Random random= new Random();
+    private int NumberOfWord;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        View decorView = getWindow().getDecorView(); //скрыть панель навигации
+        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                |View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_LOW_PROFILE
+                | View.SYSTEM_UI_FLAG_IMMERSIVE;
+        decorView.setSystemUiVisibility(uiOptions);
+
+        Box=findViewById(R.id.Box);
+        EnglishCard=findViewById(R.id.EnglishWord);
+        Translate=findViewById(R.id.translate);
+        Main=findViewById(R.id.Main);
+        nav_bar=findViewById(R.id.nav_bar);
+
+        nav_bar.setNavigationItemSelectedListener(this);
+        Main.setOnTouchListener(this);
+//        nav_bar.bringToFront();
+//        nav_bar.requestLayout();
+
+
+
+        Main.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
+
+        EnglishWord= new String[1000];
+        RushenhWord= new String[1000];
+        loadFileById(EnglishWord, R.raw.englishword);
+        loadFileById(RushenhWord, R.raw.rushenword);
+        anotherWord();
+    }
+
+    public void OpenMenu(View v){
+        if(Main.isDrawerOpen(GravityCompat.START)){
+            Main.closeDrawer(GravityCompat.END);
+        }else{
+            Main.openDrawer(GravityCompat.START);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (Main.isDrawerOpen(GravityCompat.START)) {
+            Main.closeDrawer(GravityCompat.START);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    public void anotherWord(){
+        NumberOfWord=random.nextInt(EnglishWord.length);
+        EnglishCard.setText(EnglishWord[NumberOfWord]);
+//        SaveFile(EnglishCard.getText().toString(),"lol.txt");
+        Translate.setText("");
+
+    }
+
+    public void ShowTranslate(View v){
+        Translate.setText(RushenhWord[NumberOfWord]);
+    }
+
+    private void Toast(String s){
+        Toast.makeText(
+                MainActivity.this,s,
+                Toast.LENGTH_LONG
+        ).show();
+    }
+
+    public void Click(View v){Toast("kkk");}
+
+    @Override
+    public boolean onTouch(View view, MotionEvent event){
+        final int X = (int) event.getRawX();
+        final int Y = (int) event.getRawY();
+        switch (event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN:
+                StartX=X;
+                if(Main.isDrawerOpen(GravityCompat.START)){
+                    if(X>750){
+                        Main.closeDrawer(GravityCompat.START);
+                    }
+                    return true;
+                }
+                StartTime=System.currentTimeMillis();
+                break;
+            case MotionEvent.ACTION_UP:
+                if(Main.isDrawerOpen(GravityCompat.START)){
+                    return true;
+                }
+                if(abs((X-StartX)/10)>15){
+                    anotherWord();
+                }else{
+                    if(System.currentTimeMillis()-StartTime<150)
+                        ShowTranslate(null);
+                }
+                Box.setRotation(0);
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if(Main.isDrawerOpen(GravityCompat.START)){
+                    if((StartX-X)/10>15){
+                        Main.closeDrawer(GravityCompat.START);
+                    }
+                    return true;
+                }
+                Box.setRotation((X-StartX)/10);
+                break;
+        }
+        return true;
+    }
+
+
+
+    public void loadFileById(String[] a, int resurceId){
+        try {
+            InputStream iStream = getResources().openRawResource(resurceId);
+            InputStreamReader sr=new InputStreamReader(iStream);
+            BufferedReader bf=new BufferedReader(sr);
+            StringBuffer stringBuffer=new StringBuffer();
+            String string;
+            int i=0;
+            while ((string=bf.readLine())!=null){
+                a[i]=string;
+                i++;
+            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void SaveFile(String s, String fileName){
+        try {
+            FileOutputStream fileOutputStream = openFileOutput(fileName, MODE_PRIVATE);
+//            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(fileOutputStream));
+////            for(String s:a){
+//                bw.write(s);
+//                bw.newLine();
+////            }
+//
+//            bw.close();
+            fileOutputStream.write(s.getBytes());
+            fileOutputStream.close();
+
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public String loadFileInLife(String a, String filename){
+        try {
+            FileInputStream iStream = openFileInput(filename);
+            InputStreamReader sr=new InputStreamReader(iStream);
+            BufferedReader bf=new BufferedReader(sr);
+            StringBuffer stringBuffer=new StringBuffer();
+            String string;
+            int i=0;
+            string=bf.readLine();
+            if(string==null){return " ";}
+            return string;
+//            while ((string=bf.readLine())!=null){
+//                a[i]=string;
+//                i++;
+//            }
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return " ";
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
+        switch (menuItem.getItemId()) {
+            case R.id.nav_lern_words:
+                getSupportFragmentManager().beginTransaction().replace(R.id.Main_Frame, new main_fragment()).commit();
+                break;
+            case R.id.nav_kind_words:
+                getSupportFragmentManager().beginTransaction().replace(R.id.Main_Frame, new setting_activity()).commit();
+                break;
+            case R.id.nav_setting:
+                getSupportFragmentManager().beginTransaction().replace(R.id.Main_Frame, new chose_words()).commit();
+                break;
+        }
+        Main.closeDrawer(GravityCompat.START);
+        return true;
+    }
+}
